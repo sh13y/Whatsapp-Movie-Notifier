@@ -122,6 +122,23 @@ def save_notified_movies(notified_movies):
     with open(LOG_FILE, "w") as file:
         json.dump(notified_movies, file)
 
+def fetch_trailer(movie_id, content_type="movie"):
+    """Fetch the trailer URL for a movie or TV show."""
+    url = f"https://api.themoviedb.org/3/{content_type}/{movie_id}/videos?api_key={TMDB_API_KEY}&language=en-US"
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+        
+        # Find the trailer in the response
+        for video in data.get("results", []):
+            if video["type"] == "Trailer" and video["site"] == "YouTube":
+                return f"https://www.youtube.com/watch?v={video['key']}"
+        return None
+    except requests.RequestException as e:
+        print(f"Error fetching trailer: {e}")
+        return None
+
 def create_human_friendly_log(content, action):
     """Create a human-friendly log entry."""
     log_entry = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {action} - {content['title']}\n"
