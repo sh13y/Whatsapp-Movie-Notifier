@@ -57,9 +57,9 @@ def fetch_top_movies():
         movie_id = movie.get("id")  # Unique ID to track which movies have been notified
         genre_ids = movie.get("genre_ids", [])
         
-        # Map genre IDs to genre names
-        movie_genres = [genres.get(genre_id, "Unknown") for genre_id in genre_ids]
-        genres_str = ", ".join(movie_genres)  # Genres as comma-separated string
+        # Map genre IDs to genre names, filter out unknown genres
+        movie_genres = [genres.get(genre_id) for genre_id in genre_ids if genre_id in genres]
+        genres_str = ", ".join(movie_genres) if movie_genres else "No genres available"  # Genres as comma-separated string
 
         # Add movie to the top_movies list
         top_movies.append({
@@ -101,9 +101,9 @@ def fetch_top_tv_shows():
         tv_show_id = tv_show.get("id")  # Unique ID to track which shows have been notified
         genre_ids = tv_show.get("genre_ids", [])
         
-        # Map genre IDs to genre names
-        tv_show_genres = [genres.get(genre_id, "Unknown") for genre_id in genre_ids]
-        genres_str = ", ".join(tv_show_genres)  # Genres as comma-separated string
+        # Map genre IDs to genre names, filter out unknown genres
+        tv_show_genres = [genres.get(genre_id) for genre_id in genre_ids if genre_id in genres]
+        genres_str = ", ".join(tv_show_genres) if tv_show_genres else "No genres available"  # Genres as comma-separated string
 
         # Add TV show to the top_tv_shows list
         top_tv_shows.append({
@@ -161,9 +161,9 @@ def send_whatsapp_notification(content_list, notified_movies, content_type):
 
         # Create the message with content details
         message = f"🎬 *Top {content_type.capitalize()} for the Week!*\n\n"
-        message += f"📌 *{content['title']}*\n"
-        message += f"📅 *Release Date*: {format_date(content['release_date'])}\n"
-        message += f"💬 {content['description']}\n"
+        message += f"📌 *{content['title']}*\n\n"
+        message += f"📅 *Release Date*: {format_date(content['release_date'])}\n\n"
+        message += f"💬 *Description*: {content['description']}\n\n"
         message += f"🎥 *Genres*: {content['genres']}\n"
         
         # Standardize image size to 500x750 pixels
