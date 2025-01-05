@@ -15,6 +15,7 @@ TMDB_API_KEY = os.getenv("TMDB_API_KEY")  # TMDB API key
 LOG_FILE = "notified_movies.log"  # Log file to store notified movie IDs
 HUMAN_FRIENDLY_LOG_FILE = "movie_notifier.log"  # Human-friendly log file
 
+# Fetch genres for movies and TV shows
 def fetch_genres():
     """Fetch the genres from the TMDB API."""
     url = f"https://api.themoviedb.org/3/genre/movie/list?api_key={TMDB_API_KEY}&language=en-US"
@@ -28,87 +29,103 @@ def fetch_genres():
         print(f"Error fetching genres: {e}")
         return {}
 
-def fetch_latest_movies_and_tv_shows():
-    """Fetch the latest movies and TV shows from the TMDB API."""
-    url_movie = f"https://api.themoviedb.org/3/movie/latest?api_key={TMDB_API_KEY}&language=en-US"
-    url_tv = f"https://api.themoviedb.org/3/tv/latest?api_key={TMDB_API_KEY}&language=en-US"
-    
+# Fetch top movies for the week (using 'top_rated' or 'now_playing' endpoint)
+def fetch_top_movies():
+    """Fetch the top movies for the week from the TMDB API."""
+    url = f"https://api.themoviedb.org/3/movie/top_rated?api_key={TMDB_API_KEY}&language=en-US"
     try:
-        # Fetch the latest movie and TV show
-        response_movie = requests.get(url_movie)
-        response_tv = requests.get(url_tv)
-        
-        response_movie.raise_for_status()
-        response_tv.raise_for_status()
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
 
-        movie_data = response_movie.json()
-        tv_data = response_tv.json()
+        # Debugging: Print the API response
+        print("Top Movies:", data)
 
-        # Fetch genres for mapping
-        genres = fetch_genres()
-
-        # Process movie
-        latest_content = []
-        
-        # Process Movie
-        title = movie_data.get("title")
-        release_date = movie_data.get("release_date")
-        description = movie_data.get("overview", "No description available.")
-        poster_path = movie_data.get("poster_path")
-        poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else ""  # Fixed image size (w500)
-        movie_id = movie_data.get("id")
-        genre_ids = movie_data.get("genre_ids", [])
-        movie_genres = [genres.get(genre_id, "Unknown") for genre_id in genre_ids]
-        genres_str = ", ".join(movie_genres)
-
-        latest_content.append({
-            "id": movie_id,
-            "type": "movie",
-            "title": title,
-            "release_date": release_date,
-            "description": description,
-            "poster_url": poster_url,  # Using same size for all images
-            "genres": genres_str
-        })
-
-        # Process TV Show
-        title = tv_data.get("name")
-        release_date = tv_data.get("first_air_date")
-        description = tv_data.get("overview", "No description available.")
-        poster_path = tv_data.get("poster_path")
-        poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else ""  # Fixed image size (w500)
-        tv_id = tv_data.get("id")
-        genre_ids = tv_data.get("genre_ids", [])
-        tv_genres = [genres.get(genre_id, "Unknown") for genre_id in genre_ids]
-        genres_str = ", ".join(tv_genres)
-
-        latest_content.append({
-            "id": tv_id,
-            "type": "tv",
-            "title": title,
-            "release_date": release_date,
-            "description": description,
-            "poster_url": poster_url,  # Using same size for all images
-            "genres": genres_str
-        })
-
-        return latest_content
-    
     except requests.RequestException as e:
-        print(f"Error fetching latest content: {e}")
+        print(f"Error fetching top movies: {e}")
         return []
 
+    top_movies = []
+    genres = fetch_genres()  # Fetch genre names
+
+    for movie in data.get("results", []):
+        title = movie.get("title")
+        release_date = movie.get("release_date")
+        description = movie.get("overview", "No description available.")
+        poster_path = movie.get("poster_path")
+        poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else ""
+        movie_id = movie.get("id")  # Unique ID to track which movies have been notified
+        genre_ids = movie.get("genre_ids", [])
+        
+        # Map genre IDs to genre names
+        movie_genres = [genres.get(genre_id, "Unknown") for genre_id in genre_ids]
+        genres_str = ", ".join(movie_genres)  # Genres as comma-separated string
+
+        # Add movie to the top_movies list
+        top_movies.append({
+            "id": movie_id,
+            "title": title,
+            "release_date": release_date,
+            "description": description,
+            "poster_url": poster_url,
+            "genres": genres_str
+        })
+
+    return top_movies
+
+# Fetch top TV shows for the week (using 'top_rated' or 'airing_today' endpoint)
+def fetch_top_tv_shows():
+    """Fetch the top TV shows for the week from the TMDB API."""
+    url = f"https://api.themoviedb.org/3/tv/top_rated?api_key={TMDB_API_KEY}&language=en-US"
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+
+        # Debugging: Print the API response
+        print("Top TV Shows:", data)
+
+    except requests.RequestException as e:
+        print(f"Error fetching top TV shows: {e}")
+        return []
+
+    top_tv_shows = []
+    genres = fetch_genres()  # Fetch genre names
+
+    for tv_show in data.get("results", []):
+        title = tv_show.get("name")
+        first_air_date = tv_show.get("first_air_date")
+        description = tv_show.get("overview", "No description available.")
+        poster_path = tv_show.get("poster_path")
+        poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else ""
+        tv_show_id = tv_show.get("id")  # Unique ID to track which shows have been notified
+        genre_ids = tv_show.get("genre_ids", [])
+        
+        # Map genre IDs to genre names
+        tv_show_genres = [genres.get(genre_id, "Unknown") for genre_id in genre_ids]
+        genres_str = ", ".join(tv_show_genres)  # Genres as comma-separated string
+
+        # Add TV show to the top_tv_shows list
+        top_tv_shows.append({
+            "id": tv_show_id,
+            "title": title,
+            "release_date": first_air_date,
+            "description": description,
+            "poster_url": poster_url,
+            "genres": genres_str
+        })
+
+    return top_tv_shows
+
+# Format the date to a human-readable format
 def format_date(date_str):
     """Format the date to be more human-readable."""
-    if not date_str:
-        return "Release date not available"  # Handle missing or empty dates
-    try:
+    if date_str:
         date_obj = datetime.strptime(date_str, "%Y-%m-%d")
-        return date_obj.strftime("%B %d, %Y")  # Return formatted date
-    except ValueError:
-        return "Invalid date format"  # Handle invalid date formats
+        return date_obj.strftime("%B %d, %Y")
+    return "Unknown"
 
-
+# Load the list of notified movies and TV shows
 def load_notified_movies():
     """Load the list of notified movies from the log file."""
     if os.path.exists(LOG_FILE):
@@ -117,60 +134,40 @@ def load_notified_movies():
     else:
         return []
 
+# Save the list of notified movies and TV shows
 def save_notified_movies(notified_movies):
     """Save the list of notified movies to the log file."""
     with open(LOG_FILE, "w") as file:
         json.dump(notified_movies, file)
 
-def fetch_trailer(movie_id, content_type="movie"):
-    """Fetch the trailer URL for a movie or TV show."""
-    url = f"https://api.themoviedb.org/3/{content_type}/{movie_id}/videos?api_key={TMDB_API_KEY}&language=en-US"
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-        data = response.json()
-        
-        # Find the trailer in the response
-        for video in data.get("results", []):
-            if video["type"] == "Trailer" and video["site"] == "YouTube":
-                return f"https://www.youtube.com/watch?v={video['key']}"
-        return None
-    except requests.RequestException as e:
-        print(f"Error fetching trailer: {e}")
-        return None
-
+# Create a human-friendly log entry
 def create_human_friendly_log(content, action):
     """Create a human-friendly log entry."""
     log_entry = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {action} - {content['title']}\n"
-    
-    # Open the log file with UTF-8 encoding to handle special characters
-    with open(HUMAN_FRIENDLY_LOG_FILE, "a", encoding="utf-8") as log_file:
+    with open(HUMAN_FRIENDLY_LOG_FILE, "a", encoding='utf-8') as log_file:
         log_file.write(log_entry)
 
-
-def send_whatsapp_notification(latest_content, notified_movies):
-    """Send a WhatsApp message with details about the latest movies and TV shows."""
-    if not latest_content:
-        print("No latest content to notify.")
+# Send a WhatsApp notification
+def send_whatsapp_notification(content_list, notified_movies, content_type):
+    """Send a WhatsApp message with details about the top content (movies or TV shows)."""
+    if not content_list:
+        print(f"No {content_type} content to notify.")
         return
     
-    for content in latest_content:
+    for content in content_list:
         if content['id'] in notified_movies:
             print(f"Content {content['title']} already notified, skipping.")
             continue
 
-        # Create the message with content details using the new format
-        message = f"🎬 *Latest Update: New Releases!*\n\n"
-        message += f"📌 *Title*: {content['title']}\n"
-        message += f"📅 *Release Date*: {format_date(content['release_date'])}\n"  # Use the updated format_date function
-        message += f"🎥 *Type*: {content['type'].capitalize()}\n"  # Capitalize the type (movie or TV show)
-        message += f"📝 *Description*: {content['description']}\n\n"
-        message += f"🎭 *Genres*: {content['genres']}\n"
-        message += f"🔗 *Watch Now*: [Link to Content](https://www.themoviedb.org/{content['type']}/{content['id']})\n"
-
-        # Send the same image size (w500) for all notifications
+        # Create the message with content details
+        message = f"🎬 *Top {content_type.capitalize()} for the Week!*\n\n"
+        message += f"📌 *{content['title']}*\n"
+        message += f"📅 *Release Date*: {format_date(content['release_date'])}\n"
+        message += f"💬 {content['description']}\n"
+        message += f"🎥 *Genres*: {content['genres']}\n"
+        
+        # Standardize image size to 500x750 pixels
         image_url = content['poster_url']
-
         if image_url:
             payload = {
                 "chatId": f"{WHATSAPP_NUMBER}@g.us",  # WhatsApp group id
@@ -191,22 +188,34 @@ def send_whatsapp_notification(latest_content, notified_movies):
                 notified_movies.append(content['id'])
                 create_human_friendly_log(content, "Notified")
             except requests.exceptions.RequestException as e:
-                print(f"Failed to send WhatsApp notification with poster for {content['title']}: {e}")
+                print(f"Failed to send WhatsApp notification for {content['title']}: {e}")
 
+# Main function to fetch top movies and TV shows for the week and send notifications
 def main():
-    """Main function to fetch latest content and send notifications."""
-    print("Fetching the latest movies and TV shows...")
-    latest_content = fetch_latest_movies_and_tv_shows()
+    """Main function to fetch top movies and TV shows for the week and send notifications."""
+    print("Fetching top movies for the week...")
+    top_movies = fetch_top_movies()
 
+    # Notify about top movies
     notified_movies = load_notified_movies()
-
-    if latest_content:
-        print("Latest content found! Sending WhatsApp notification...")
-        send_whatsapp_notification(latest_content, notified_movies)
-        # Save the updated list of notified movies
+    if top_movies:
+        print("Top movies found! Sending WhatsApp notifications...")
+        send_whatsapp_notification(top_movies, notified_movies, "movie")
         save_notified_movies(notified_movies)
     else:
-        print("No latest content available at the moment.")
+        print("No top movies found.")
+
+    # Now fetch and notify about top TV shows
+    print("Fetching top TV shows for the week...")
+    top_tv_shows = fetch_top_tv_shows()
+
+    # Notify about top TV shows
+    if top_tv_shows:
+        print("Top TV shows found! Sending WhatsApp notifications...")
+        send_whatsapp_notification(top_tv_shows, notified_movies, "tv")
+        save_notified_movies(notified_movies)
+    else:
+        print("No top TV shows found.")
 
 if __name__ == "__main__":
     main()
