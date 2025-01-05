@@ -8,6 +8,10 @@ Are you a movie buff who can't wait to know about the latest releases? Do you wa
 
 This nifty little script fetches the latest movies from The Movie Database (TMDB) and sends a WhatsApp message with the details. Yes, you heard that right! Your WhatsApp will be buzzing with the latest movie updates, complete with posters and descriptions. How cool is that? Now you can be the movie guru in your group chat!
 
+Here's a screenshot of what the notification looks like:
+
+![Received Notification](assets/Screenshot_20250105-201313.png)
+
 ## How to Get Started
 
 ### Prerequisites
@@ -60,7 +64,7 @@ Feel free to fork this repository, make your changes, and submit a pull request.
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the WTFPL License. See the [LICENSE](LICENSE) file for details.
 
 ## Disclaimer
 
