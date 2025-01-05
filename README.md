@@ -24,7 +24,7 @@ Before you dive in, make sure you have the following:
 
 1. **Clone the Repository**:
     ```bash
-    git clone https://github.com/yourusername/whatsapp-movie-notifier.git
+    git clone https://github.com/sh13y/whatsapp-movie-notifier.git
     cd whatsapp-movie-notifier
     ```
 
